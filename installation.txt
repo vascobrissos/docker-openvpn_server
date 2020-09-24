@@ -98,7 +98,7 @@ verb 3
 $ service openvpn restart
 
 #Check if server is running
-$ servive openvpn status
+$ service openvpn status
 
 #Check if port forwarding is enabled (1)
 $ cat /proc/sys/net/ipv4/ip_forward
