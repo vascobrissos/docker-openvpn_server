@@ -7,6 +7,8 @@ Showing how to install OpenVPN Server on a docker container.
 
 Port-forward needed ports on your router/etc.
 
+OpenVPN client: https://openvpn.net/community-downloads/
+
 Assuming you alredy have docker installed. If not, I ran this. https://docs.docker.com/engine/install/debian/
 
 #Download latest debian image
