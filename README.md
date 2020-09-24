@@ -1,2 +1,163 @@
 # docker-openvpn_server
-Openvpn Server for docker container
+OpenVPN Server for docker container
+
+OpenVPN client: https://openvpn.net/community-downloads/
+
+This installation was tested on armhf running Armbian Buster kernel 4.14.y.
+
+Showing how to install OpenVPN Server on a docker container.
+
+Port-forward needed ports on your router/etc.
+
+Assuming you alredy have docker installed. If not, I ran this. https://docs.docker.com/engine/install/debian/
+
+#Download latest debian image
+$ docker pull debian
+
+#Create a container with privileges (not sure if needed but most likely needed due to network interfaces (something to do with tun0)) and with port XXXX open. 
+#Example: docker run --privileged -p 2000:2000/udp -d -t --name vpnserver debian
+$ docker run --privileged -p XXXX:XXXX/XXX -d -t --name XXXXX debian
+
+#Get shell access
+#Example: docker exec -it vpnserver bash
+$ docker exec -it <your container name> bash
+
+#Update repositories
+$ apt-get update
+
+#Upgrade packages
+$ apt-get upgrade
+
+#Install nano (text editor used for this installation)
+$ apt-get install nano
+
+#Install OpenVPN
+$ apt-get install openvpn
+
+#Create directory for easy-rsa
+$ make-cadir /etc/openvpn/easy-rsa
+
+#CD into that directory
+$ cd /etc/openvpn/easy-rsa/
+
+#Now we need to create certificates
+#Start by initializing easy-rsa
+$ ./easyrsa init-pki
+
+#Build server certificate
+$ ./easyrsa build-ca nopass
+
+#Build server key (leave common came as server for simplicity)
+$ ./easyrsa gen-req server nopass
+
+#Copy server certificate and key to /etc/openvpn/
+$ cp pki/private/server.key /etc/openvpn/
+$ cp pki/ca.crt /etc/openvpn/
+
+#Sign server certificate
+$ ./easyrsa sign-req server server
+
+#Copy signed server certificate
+$ cp pki/issued/server.crt /etc/openvpn/
+
+#Build dh key (this will take some time)
+$ ./easyrsa gen-dh
+
+#Build ta key
+$ openvpn --genkey --secret ta.key
+
+#Copy dh.pem and ta.key to /etc/openvpn/
+$ cp ta.key /etc/openvpn/
+$ cp pki/dh.pem /etc/openvpn/
+
+#Create OpenVPN config file
+$ nano /etc/openvpn/server.conf
+
+#Insert following content
+port <your port>
+proto udp
+dev tun
+tun-mtu 1500
+tun-mtu-extra 32
+mssfix 1450
+ca /etc/openvpn/ca.crt
+cert /etc/openvpn/server.crt
+key /etc/openvpn/server.key
+dh /etc/openvpn/dh.pem
+server 10.8.0.0 255.255.255.0
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.8.8"
+push "dhcp-option DNS 8.8.4.4"
+keepalive 5 30
+comp-lzo
+persist-key
+persist-tun
+status /var/log/openvpn.log
+verb 3
+#Insert following content
+  
+#Restart OpenVPN
+$ service openvpn restart
+
+#Check if server is running
+$ servive openvpn status
+
+#Check if port forwarding is enabled (1)
+$ cat /proc/sys/net/ipv4/ip_forward
+
+#Install iptables
+$ apt-get install iptables
+
+#Check your main network interface name (usually eth0)
+$ ip a
+
+#Add rule to iptables
+$ iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+
+#Install persistent iptables and choose yes
+$ apt-get install iptables-persistent
+
+#Create client key and certificate
+$ ./easyrsa gen-req <choose client name> nopass
+$ ./easyrsa sign-req client <client name>
+  
+#cd into /etc/openvpn/
+$ cd /etc/openvpn/
+
+#Create .ovpn profile on your desktop with following content
+client
+dev tun
+proto udp
+remote <your ip> <your port> #remote example.com 1994
+resolv-retry infinite
+nobind
+tun-mtu 1500
+tun-mtu-extra 32
+mssfix 1450
+persist-key
+persist-tun
+auth-nocache
+remote-cert-tls server
+comp-lzo
+verb 3
+#copy over the server's /etc/openvpn/ca.crt
+<ca>
+-----BEGIN CERTIFICATE-----
+
+-----END CERTIFICATE-----
+</ca>
+# copy over the server's /etc/openvpn/easy-rsa/pki/issued/<client>.crt
+<cert>
+-----BEGIN CERTIFICATE-----
+
+-----END CERTIFICATE-----
+</cert>
+# copy over the server's /etc/openvpn/easy-rsa/pki/private/<client>.key
+<key>
+-----BEGIN PRIVATE KEY-----
+
+-----END PRIVATE KEY-----
+</key>
+#Create .ovpn profile on your desktop with following content
+
+#Import file to OpenVPN and connect
