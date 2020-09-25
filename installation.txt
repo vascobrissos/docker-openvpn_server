@@ -85,7 +85,7 @@ cert /etc/openvpn/server.crt
 key /etc/openvpn/server.key
 dh /etc/openvpn/dh.pem
 server 10.8.0.0 255.255.255.0
-push "redirect-gateway def1 bypass-dhcp"
+push "redirect-gateway def1"
 push "dhcp-option DNS 8.8.8.8"
 push "dhcp-option DNS 8.8.4.4"
 keepalive 5 30
