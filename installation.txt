@@ -161,3 +161,12 @@ verb 3
 #Create .ovpn profile on your desktop with following content
 
 #Import file to OpenVPN and connect
+
+#Everytime you reboot host OS or container, you must execute followings commands to start container's servers
+
+$ service openvpn restart
+$ iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+
+#You can put these commands inside a script and execute the following command from host machine
+
+$ docker exec -i <container name> bash < <script name>.sh
