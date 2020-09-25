@@ -162,11 +162,36 @@ verb 3
 
 #Import file to OpenVPN and connect
 
-#Everytime you reboot host OS or container, you must execute followings commands to start container's servers
+#Everytime the host machine reboots, the containers restart. This causes openvpn and IP forwarding to stop. To fix this, I created a script ran by crontab that runs the needed commands to start openvpn and forward IP inside the server container. With crontab, everything is automated and there's no need for manual input if the host machine reboots.
 
-$ service openvpn restart
-$ iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+#On host machine:
 
-#You can put these commands inside a script and execute the following command from host machine
+$ crontab -e
 
-$ docker exec -i <container name> bash < <script name>.sh
+#Append following line:
+
+*/5 * * * * /home/<username>/autostart.sh
+
+$ service cron restart
+
+$ nano /home/<username>/autostart.sh
+
+#Insert following script and edit for your choices
+STATUS="$(docker exec -i <container name> service openvpn status)"
+if [ "${STATUS}" = "VPN 'server' is not running ... failed!" ]; then
+    docker exec -i <container name> bash < /home/<username>/startvpn.sh
+fi
+
+exit 1 
+#Insert following script and edit for your choices
+
+$ nano /home/<username>/startvpn.sh
+
+#Insert following script
+service openvpn restart
+iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o eth0 -j MASQUERADE
+#Insert following script
+
+$ chmod +x /home/<username>/autostart.sh
+
+$ chmod +x /home/<username>/startvpn.sh
