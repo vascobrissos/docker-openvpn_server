@@ -64,7 +64,7 @@ $ cp pki/issued/server.crt /etc/openvpn/
 $ ./easyrsa gen-dh
 
 #Build ta key
-$ openvpn --genkey --secret ta.key
+$ openvpn --genkey secret ta.key
 
 #Copy dh.pem and ta.key to /etc/openvpn/
 $ cp ta.key /etc/openvpn/
